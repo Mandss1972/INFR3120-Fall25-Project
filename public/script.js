@@ -1,47 +1,38 @@
-// ===== FRONTEND SCRIPT =====
+// ======= FRONTEND SCRIPT =======
 
+// Backend API base URL
 const baseUrl = "https://infr3120-fall25-project-noted-backend.onrender.com";
 
-// ===== DOM ELEMENTS =====
+// DOM element references
 const taskForm = document.getElementById("taskForm");
 const taskTableBody = document.querySelector("#taskTable tbody");
 
-// ===== FETCH ALL TASKS =====
+// Fetch and render tasks from backend
 async function fetchTasks() {
   try {
     const res = await fetch(`${baseUrl}/api/tasks`);
-    if (!res.ok) throw new Error("Failed to fetch tasks");
-
     const tasks = await res.json();
 
-    if (!Array.isArray(tasks)) {
-      console.error("Invalid data format from backend:", tasks);
-      return;
-    }
+    // Clear current table
+    taskTableBody.innerHTML = "";
 
-    // Render tasks into table rows
-    taskTableBody.innerHTML = tasks
-      .map(
-        (task) => `
-        <tr>
-          <td>${task.title}</td>
-          <td>${task.description || "—"}</td>
-          <td>${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}</td>
-          <td>
-            <button onclick="deleteTask('${task._id}')">🗑 Delete</button>
-          </td>
-        </tr>
-      `
-      )
-      .join("");
+    // Render each task row
+    tasks.forEach((task) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${task.title}</td>
+        <td>${task.description}</td>
+        <td>${task.dueDate}</td>
+        <td><button onclick="deleteTask('${task._id}')">🗑 Delete</button></td>
+      `;
+      taskTableBody.appendChild(row);
+    });
   } catch (err) {
     console.error("⚠️ Failed to load tasks:", err);
-    taskTableBody.innerHTML =
-      "<tr><td colspan='4' style='color:red;'>Failed to load tasks.</td></tr>";
   }
 }
 
-// ===== ADD A NEW TASK =====
+// Add a new task
 taskForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -49,8 +40,8 @@ taskForm.addEventListener("submit", async (e) => {
   const description = document.getElementById("description").value.trim();
   const dueDate = document.getElementById("dueDate").value;
 
-  if (!title || !dueDate) {
-    alert("⚠️ Please fill in all required fields.");
+  if (!title || !description || !dueDate) {
+    alert("Please fill in all fields before saving!");
     return;
   }
 
@@ -65,17 +56,17 @@ taskForm.addEventListener("submit", async (e) => {
       taskForm.reset();
       fetchTasks();
     } else {
-      const errorMsg = await res.text();
-      alert(`❌ Failed to add task: ${errorMsg}`);
+      console.error("❌ Failed to add task:", res.status);
+      alert("Failed to add task. Check backend connection.");
     }
   } catch (err) {
-    console.error("❌ Error adding task:", err);
+    console.error("⚠️ Error adding task:", err);
   }
 });
 
-// ===== DELETE A TASK =====
+// Delete a task
 async function deleteTask(id) {
-  const confirmDelete = confirm("🗑 Are you sure you want to delete this assignment?");
+  const confirmDelete = confirm("Are you sure you want to delete this task?");
   if (!confirmDelete) return;
 
   try {
@@ -86,12 +77,12 @@ async function deleteTask(id) {
     if (res.ok) {
       fetchTasks();
     } else {
-      console.error("Failed to delete task");
+      console.error("❌ Failed to delete task:", res.status);
     }
   } catch (err) {
-    console.error("❌ Error deleting task:", err);
+    console.error("⚠️ Error deleting task:", err);
   }
 }
 
-// ===== INITIAL LOAD =====
+// Initial load
 fetchTasks();
