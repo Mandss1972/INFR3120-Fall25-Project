@@ -1,31 +1,34 @@
+// ====== IMPORTS ======
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 
+// ====== PATH SETUP ======
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// ====== Middleware ======
+// ====== MIDDLEWARE ======
 app.use(cors({
   origin: "*", // allow all origins for testing
   methods: ["GET", "POST", "DELETE"],
   allowedHeaders: ["Content-Type"]
 }));
 app.use(express.json());
-app.use(express.static("public")); // serve frontend files from /public
 
-// ====== MongoDB Connection ======
-const uri = "mongodb+srv://<amanda1972>:<7ipVMymPRAzyDp@
->@cluster0.tythvow.mongodb.net/?appName=Cluster0/notedDB";
+// ✅ Serve static files from /public
+app.use(express.static(path.join(__dirname, "public")));
+
+// ====== MONGODB CONNECTION ======
+const uri = "mongodb+srv://amanda1972:7ipVMymPRAzyDp@cluster0.tythvow.mongodb.net/notedDB?retryWrites=true&w=majority";
 mongoose.connect(uri)
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch(err => console.error("❌ MongoDB connection failed:", err));
 
-// ====== Schema & Model ======
+// ====== SCHEMA & MODEL ======
 const taskSchema = new mongoose.Schema({
   title: String,
   description: String,
@@ -33,7 +36,7 @@ const taskSchema = new mongoose.Schema({
 });
 const Task = mongoose.model("Task", taskSchema);
 
-// ====== API Routes ======
+// ====== API ROUTES ======
 
 // Get all tasks
 app.get("/api/tasks", async (req, res) => {
@@ -67,11 +70,11 @@ app.delete("/api/tasks/:id", async (req, res) => {
   }
 });
 
-// ====== Serve Frontend ======
+// ====== SERVE FRONTEND ======
 app.get("/", (req, res) => {
-  res.send("Noted backend is running. Visit /public for the frontend.");
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// ====== Start Server ======
+// ====== START SERVER ======
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
