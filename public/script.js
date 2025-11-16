@@ -1,5 +1,13 @@
 // ===== FRONTEND SCRIPT =====
 
+const addTaskBtn = document.getElementById("addTaskBtn");
+const taskFormSection = document.getElementById("taskFormSection");
+
+addTaskBtn.addEventListener("click", () => {
+  taskFormSection.classList.toggle("hidden");
+});
+
+
 // Backend API base URL (Render backend link)
 const baseUrl = "https://infr3120-fall25-project-noted-backend.onrender.com";
 
@@ -35,6 +43,7 @@ async function fetchTasks() {
 }
 
 // ===== Add a new task =====
+console.log("Add Assignment button clicked — form submitted");
 taskForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -48,6 +57,10 @@ taskForm.addEventListener("submit", async (e) => {
   }
 
   try {
+  console.log("📤 Sending POST request to:", `${baseUrl}/api/tasks`, {
+    title, description, dueDate
+  });
+  
     const res = await fetch(`${baseUrl}/api/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
