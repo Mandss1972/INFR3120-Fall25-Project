@@ -23,7 +23,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // ====== MONGODB CONNECTION ======
-const uri = "mongodb+srv://amanda1972:7ipVMymPRAzyDp@cluster0.tythvow.mongodb.net/notedDB?retryWrites=true&w=majority";
+const uri = "mongodb+srv://amanda1972:Alma2024@cluster0.tythvow.mongodb.net/notedDB?retryWrites=true&w=majority";
 mongoose.connect(uri)
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch(err => console.error("❌ MongoDB connection failed:", err));
