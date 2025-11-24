@@ -1,9 +1,13 @@
 // ====== IMPORTS ======
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+import session from "express-session";
+import bcrypt from "bcrypt";
 
 // ====== PATH SETUP ======
 const __filename = fileURLToPath(import.meta.url);
@@ -12,62 +16,131 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // ====== MIDDLEWARE ======
-app.use(cors({
-  origin: "*", // allow all origins for testing
-  methods: ["GET", "POST", "DELETE"],
-  allowedHeaders: ["Content-Type"]
-}));
 app.use(express.json());
+app.use(
+  session({
+    secret: "noted-secret-key",
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }, 
+  })
+);
 
-// ✅ Serve static files from /public
+// Allow frontend to communicate with backend
+app.use(
+  cors({
+    origin: "*",
+    credentials: true,
+  })
+);
+
+// Serve static files
 app.use(express.static(path.join(__dirname, "public")));
 
-// ====== MONGODB CONNECTION ======
-const uri = "mongodb+srv://amanda1972:Alma2024@cluster0.tythvow.mongodb.net/notedDB?retryWrites=true&w=majority";
-mongoose.connect(uri)
-  .then(() => console.log("✅ Connected to MongoDB Atlas"))
-  .catch(err => console.error("❌ MongoDB connection failed:", err));
+// ====== DATABASE CONNECTION ======
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch((err) => console.error("❌ MongoDB connection failed:", err));
 
-// ====== SCHEMA & MODEL ======
+// ====== USER SCHEMA ======
+const userSchema = new mongoose.Schema({
+  email: String,
+  password: String,
+});
+
+const User = mongoose.model("User", userSchema);
+
+// ====== TASK SCHEMA ======
 const taskSchema = new mongoose.Schema({
   title: String,
   description: String,
-  dueDate: String
+  dueDate: String,
+  userId: String,
 });
 const Task = mongoose.model("Task", taskSchema);
 
-// ====== API ROUTES ======
-
-// Get all tasks
-app.get("/api/tasks", async (req, res) => {
-  try {
-    const tasks = await Task.find();
-    res.json(tasks);
-  } catch (err) {
-    res.status(500).json({ message: "Server error fetching tasks" });
+// ===== AUTH MIDDLEWARE =====
+function ensureAuth(req, res, next) {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authorized" });
   }
+  next();
+}
+
+// ====== AUTH ROUTES ======
+
+// REGISTER
+app.post("/auth/register", async (req, res) => {
+  const { email, password } = req.body;
+
+  const exists = await User.findOne({ email });
+  if (exists) return res.status(400).json({ error: "Email already exists" });
+
+  const hashed = await bcrypt.hash(password, 10);
+
+  const newUser = new User({ email, password: hashed });
+  await newUser.save();
+
+  res.json({ message: "User registered successfully" });
 });
 
-// Add a new task
-app.post("/api/tasks", async (req, res) => {
-  try {
-    const { title, description, dueDate } = req.body;
-    const newTask = new Task({ title, description, dueDate });
-    await newTask.save();
-    res.json(newTask);
-  } catch (err) {
-    res.status(400).json({ message: "Error creating task" });
-  }
+// LOGIN
+app.post("/auth/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) return res.status(400).json({ error: "Invalid login" });
+
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) return res.status(400).json({ error: "Wrong password" });
+
+  req.session.userId = user._id;
+  res.json({ message: "Logged in", userId: user._id });
 });
 
-// Delete a task
-app.delete("/api/tasks/:id", async (req, res) => {
-  try {
-    await Task.findByIdAndDelete(req.params.id);
-    res.sendStatus(204);
-  } catch (err) {
-    res.status(400).json({ message: "Error deleting task" });
-  }
+// LOGOUT
+app.get("/auth/logout", (req, res) => {
+  req.session.destroy();
+  res.json({ message: "Logged out" });
+});
+
+// CHECK LOGIN STATUS
+app.get("/auth/status", (req, res) => {
+  res.json({ loggedIn: !!req.session.userId });
+});
+
+// ===== TASK ROUTES (Protected) =====
+
+// Get tasks
+app.get("/api/tasks", ensureAuth, async (req, res) => {
+  const tasks = await Task.find({ userId: req.session.userId });
+  res.json(tasks);
+});
+
+// Add task
+app.post("/api/tasks", ensureAuth, async (req, res) => {
+  const { title, description, dueDate } = req.body;
+
+  const newTask = new Task({
+    title,
+    description,
+    dueDate,
+    userId: req.session.userId,
+  });
+
+  await newTask.save();
+  res.json(newTask);
+});
+
+// Delete task
+app.delete("/api/tasks/:id", ensureAuth, async (req, res) => {
+  await Task.findOneAndDelete({
+    _id: req.params.id,
+    userId: req.session.userId,
+  });
+
+  res.sendStatus(204);
 });
 
 // ====== SERVE FRONTEND ======
@@ -78,3 +151,4 @@ app.get("/", (req, res) => {
 // ====== START SERVER ======
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+

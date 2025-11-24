@@ -1,3 +1,34 @@
+// ===== Check Authentication Status =====
+async function checkAuth() {
+  const res = await fetch("/auth/status");
+  const data = await res.json();
+
+  const loginLink = document.getElementById("loginLink");
+  const logoutLink = document.getElementById("logoutLink");
+
+  if (data.loggedIn) {
+    loginLink.style.display = "none";
+    logoutLink.style.display = "inline-block";
+  } else {
+    logoutLink.style.display = "none";
+    loginLink.style.display = "inline-block";
+
+    // Hide task features when logged out
+    document.querySelector(".task-form").style.display = "none";
+    document.querySelector(".task-list").style.display = "none";
+  }
+}
+
+// ===== Logout =====
+document.getElementById("logoutLink").addEventListener("click", async () => {
+  await fetch("/auth/logout");
+  window.location.reload();
+});
+
+// Run auth check on startup
+checkAuth();
+
+
 // ===== FRONTEND SCRIPT =====
 
 const addTaskBtn = document.getElementById("addTaskBtn");
@@ -7,9 +38,8 @@ addTaskBtn.addEventListener("click", () => {
   taskFormSection.classList.toggle("hidden");
 });
 
-
-// Backend API base URL (Render backend link)
-const baseUrl = "https://infr3120-fall25-project-noted-backend.onrender.com";
+// Backend API base URL (local for sessions)
+const baseUrl = "";
 
 // HTML element references
 const taskForm = document.getElementById("taskForm");
@@ -18,13 +48,12 @@ const taskTableBody = document.querySelector("#taskTable tbody");
 // ===== Fetch all tasks from backend =====
 async function fetchTasks() {
   try {
-    const res = await fetch(`${baseUrl}/api/tasks`);
+    const res = await fetch(`/api/tasks`);
+    if (res.status === 401) return; // Not logged in
     const tasks = await res.json();
 
-    // Clear the table
     taskTableBody.innerHTML = "";
 
-    // Render tasks
     tasks.forEach(task => {
       const row = document.createElement("tr");
       row.innerHTML = `
@@ -43,7 +72,6 @@ async function fetchTasks() {
 }
 
 // ===== Add a new task =====
-console.log("Add Assignment button clicked — form submitted");
 taskForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -57,11 +85,7 @@ taskForm.addEventListener("submit", async (e) => {
   }
 
   try {
-  console.log("📤 Sending POST request to:", `${baseUrl}/api/tasks`, {
-    title, description, dueDate
-  });
-  
-    const res = await fetch(`${baseUrl}/api/tasks`, {
+    const res = await fetch(`/api/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, description, dueDate }),
@@ -71,8 +95,7 @@ taskForm.addEventListener("submit", async (e) => {
       taskForm.reset();
       fetchTasks();
     } else {
-      console.error(`❌ Failed to add task: ${res.status}`);
-      alert("Could not add task. Please check your connection.");
+      alert("Could not add task. Please login first.");
     }
   } catch (err) {
     console.error("⚠️ Error adding task:", err);
@@ -85,11 +108,11 @@ async function deleteTask(id) {
   if (!confirmDelete) return;
 
   try {
-    const res = await fetch(`${baseUrl}/api/tasks/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
     if (res.ok) {
       fetchTasks();
     } else {
-      console.error(`❌ Failed to delete task: ${res.status}`);
+      alert("Could not delete task. Please login first.");
     }
   } catch (err) {
     console.error("⚠️ Error deleting task:", err);
