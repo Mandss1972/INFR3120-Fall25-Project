@@ -1,6 +1,11 @@
-// ===== Check Authentication Status =====
+// ======== BACKEND BASE URL ========
+const baseUrl = "https://infr3120-fall25-project-noted-backend.onrender.com";
+
+let editTaskId = null; // NEW: track which task is being edited
+
+// ======== AUTHENTICATION CHECK ========
 async function checkAuth() {
-  const res = await fetch("/auth/status");
+  const res = await fetch(`${baseUrl}/auth/status`, { credentials: "include" });
   const data = await res.json();
 
   const loginLink = document.getElementById("loginLink");
@@ -13,45 +18,38 @@ async function checkAuth() {
     logoutLink.style.display = "none";
     loginLink.style.display = "inline-block";
 
-    // Hide task features when logged out
     document.querySelector(".task-form").style.display = "none";
     document.querySelector(".task-list").style.display = "none";
   }
 }
 
-// ===== Logout =====
 document.getElementById("logoutLink").addEventListener("click", async () => {
-  await fetch("/auth/logout");
+  await fetch(`${baseUrl}/auth/logout`, { credentials: "include" });
   window.location.reload();
 });
 
-// Run auth check on startup
 checkAuth();
 
 
-// ===== FRONTEND SCRIPT =====
-
+// ======== UI ELEMENTS ========
 const addTaskBtn = document.getElementById("addTaskBtn");
 const taskFormSection = document.getElementById("taskFormSection");
-
-addTaskBtn.addEventListener("click", () => {
-  taskFormSection.classList.toggle("hidden");
-});
-
-// Backend API base URL (local for sessions)
-const baseUrl = "";
-
-// HTML element references
 const taskForm = document.getElementById("taskForm");
 const taskTableBody = document.querySelector("#taskTable tbody");
 
-// ===== Fetch all tasks from backend =====
+addTaskBtn.addEventListener("click", () => {
+  editTaskId = null; // NEW: reset edit mode
+  taskForm.reset();
+  taskFormSection.classList.toggle("hidden");
+});
+
+// ======== LOAD TASKS ========
 async function fetchTasks() {
   try {
-    const res = await fetch(`/api/tasks`);
-    if (res.status === 401) return; // Not logged in
-    const tasks = await res.json();
+    const res = await fetch(`${baseUrl}/api/tasks`, { credentials: "include" });
+    if (res.status === 401) return;
 
+    const tasks = await res.json();
     taskTableBody.innerHTML = "";
 
     tasks.forEach(task => {
@@ -61,17 +59,33 @@ async function fetchTasks() {
         <td>${task.description || "—"}</td>
         <td>${task.dueDate}</td>
         <td>
+          <button onclick="startEdit('${task._id}', '${task.title}', '${task.description}', '${task.dueDate}')">✏️ Edit</button>
           <button onclick="deleteTask('${task._id}')">🗑️ Delete</button>
         </td>
       `;
       taskTableBody.appendChild(row);
     });
+
   } catch (err) {
     console.error("❌ Failed to load tasks:", err);
   }
 }
 
-// ===== Add a new task =====
+
+// ======== START EDIT MODE ========
+function startEdit(id, title, description, dueDate) {
+  editTaskId = id;
+
+  document.getElementById("title").value = title;
+  document.getElementById("description").value = description === "—" ? "" : description;
+  document.getElementById("dueDate").value = dueDate;
+
+  taskFormSection.classList.remove("hidden");
+  addTaskBtn.scrollIntoView({ behavior: "smooth" });
+}
+
+
+// ======== SAVE OR UPDATE TASK ========
 taskForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -80,44 +94,64 @@ taskForm.addEventListener("submit", async (e) => {
   const dueDate = document.getElementById("dueDate").value;
 
   if (!title || !dueDate) {
-    alert("Please fill in all fields before saving!");
+    alert("Please fill in all fields!");
     return;
   }
 
-  try {
-    const res = await fetch(`/api/tasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description, dueDate }),
-    });
+  const payload = { title, description, dueDate };
 
-    if (res.ok) {
-      taskForm.reset();
-      fetchTasks();
+  try {
+    let res;
+
+    if (editTaskId) {
+      // ---- UPDATE TASK ----
+      res = await fetch(`${baseUrl}/api/tasks/${editTaskId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      alert("Task updated!");
+
     } else {
-      alert("Could not add task. Please login first.");
+      // ---- ADD NEW TASK ----
+      res = await fetch(`${baseUrl}/api/tasks`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      alert("Task added!");
     }
+
+    taskForm.reset();
+    editTaskId = null; // clear edit mode
+    fetchTasks();
+
   } catch (err) {
-    console.error("⚠️ Error adding task:", err);
+    console.error("⚠️ Error submitting task:", err);
   }
 });
 
-// ===== Delete a task =====
+
+// ======== DELETE TASK ========
 async function deleteTask(id) {
-  const confirmDelete = confirm("Are you sure you want to delete this task?");
+  const confirmDelete = confirm("Delete this task?");
   if (!confirmDelete) return;
 
   try {
-    const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
-    if (res.ok) {
-      fetchTasks();
-    } else {
-      alert("Could not delete task. Please login first.");
-    }
+    const res = await fetch(`${baseUrl}/api/tasks/${id}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+
+    if (res.ok) fetchTasks();
+
   } catch (err) {
     console.error("⚠️ Error deleting task:", err);
   }
 }
 
-// ===== Initial Load =====
+
+// ======== INITIAL LOAD ========
 fetchTasks();

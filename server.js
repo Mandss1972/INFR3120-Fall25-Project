@@ -133,6 +133,21 @@ app.post("/api/tasks", ensureAuth, async (req, res) => {
   res.json(newTask);
 });
 
+// UPDATE a task
+app.put("/api/tasks/:id", ensureAuth, async (req, res) => {
+  const { title, description, dueDate } = req.body;
+
+  const updated = await Task.findOneAndUpdate(
+    { _id: req.params.id, userId: req.session.userId },
+    { title, description, dueDate },
+    { new: true }
+  );
+
+  if (!updated) return res.status(404).json({ error: "Task not found" });
+
+  res.json(updated);
+});
+
 // Delete task
 app.delete("/api/tasks/:id", ensureAuth, async (req, res) => {
   await Task.findOneAndDelete({

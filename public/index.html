@@ -6,28 +6,33 @@
   <title>NOTED - Digital Planner</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
+  <!-- ===== HEADER ===== -->
   <header>
     <div class="logo-container">
       <img src="./logo.png" alt="NOTED Logo" class="logo" />
       <h1>NOTED</h1>
     </div>
 
-    <!--  Added Authentication Nav -->
+    <!-- Authentication Navigation -->
     <nav class="auth-nav">
       <a href="login.html" id="loginLink">Login</a>
       <a href="#" id="logoutLink" style="display: none;">Logout</a>
     </nav>
   </header>
 
+  <!-- ===== HERO SECTION ===== -->
   <section class="hero">
     <h2>Stay Organized. Stay Ahead.</h2>
-    <p>Keep track of all your assignments, projects, and deadlines in one smart place.</p>
+    <p>Track assignments, projects, and deadlines all in one smart place.</p>
     <button id="addTaskBtn" class="hero-btn">+ Add Assignment</button>
   </section>
 
-  <section class="task-form" id="taskFormSection">
-    <h3>Add New Assignment</h3>
+  <!-- ===== TASK FORM ===== -->
+  <section class="task-form hidden" id="taskFormSection">
+    <h3 id="formTitle">Add New Assignment</h3>
+
     <form id="taskForm">
       <label>Title</label>
       <input type="text" id="title" placeholder="e.g. Web Dev Assignment 1" required />
@@ -39,10 +44,11 @@
       <input type="date" id="dueDate" required />
 
       <button type="submit" class="save-btn">Save</button>
-      <button type="button" id="cancelBtn" class="cancel-btn">Cancel</button>
+      <button type="button" id="cancelBtn" class="cancel-btn" onclick="cancelEdit()">Cancel</button>
     </form>
   </section>
 
+  <!-- ===== TASK LIST ===== -->
   <section class="task-list">
     <h3>Your Assignments</h3>
     <table id="taskTable">
@@ -51,13 +57,14 @@
           <th>Title</th>
           <th>Description</th>
           <th>Due Date</th>
-          <th>Actions</th>
+          <th style="width: 150px;">Actions</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
   </section>
 
+  <!-- ===== FOOTER ===== -->
   <footer>
     <p>© 2025 NOTED | Created by Amanda Ahanonu & Hailee Gaines-Hart</p>
   </footer>
