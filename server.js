@@ -212,7 +212,9 @@ app.get("/auth/status", (req, res) => {
   res.json({ loggedIn: !!req.session.userId });
 });
 
-// ======================= TASK ROUTES =======================
+// ====== TASK ROUTES (Protected) ======
+
+// Get all tasks
 app.get("/api/tasks", ensureAuth, async (req, res) => {
   const tasks = await Task.find({ userId: req.session.userId });
   res.json(tasks);
