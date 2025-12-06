@@ -1,6 +1,7 @@
 // ======================= IMPORTS =======================
 import dotenv from "dotenv";
 dotenv.config();
+
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -9,9 +10,10 @@ import { fileURLToPath } from "url";
 import session from "express-session";
 import bcrypt from "bcrypt";
 
-// Google OAuth imports
+// OAuth imports
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as GitHubStrategy } from "passport-github2";
 
 // ======================= PATH SETUP =======================
 const __filename = fileURLToPath(import.meta.url);
@@ -21,15 +23,14 @@ const app = express();
 app.use(express.json());
 
 // ======================= SESSION CONFIG =======================
-// Required for Netlify + Render cookie handling
 app.use(
   session({
     secret: "noted-secret-key",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true, 
-      sameSite: "none", // used for Netlify frontend to send cookies
+      secure: true,     // required for HTTPS on Render
+      sameSite: "none", // required for Netlify → Render communication
     },
   })
 );
@@ -38,16 +39,13 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-//  passport stores user sessions
-passport.serializeUser((user, done) => {
-  done(null, user._id);
-});
+passport.serializeUser((user, done) => done(null, user._id));
 passport.deserializeUser(async (id, done) => {
   const user = await User.findById(id);
   done(null, user);
 });
 
-// ======================= CORS CONFIG =======================
+// ======================= CORS =======================
 app.use(
   cors({
     origin: "https://noted-planner.netlify.app",
@@ -55,23 +53,22 @@ app.use(
   })
 );
 
-// Serve static front-end files if needed
+// Static files for deployment
 app.use(express.static(path.join(__dirname, "public")));
 
-// ======================= DATABASE CONNECTION =======================
+// ======================= DATABASE =======================
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection failed:", err));
 
-// ======================= USER SCHEMA =======================
+// ======================= SCHEMAS =======================
 const userSchema = new mongoose.Schema({
   email: String,
   password: String,
 });
 const User = mongoose.model("User", userSchema);
 
-// ======================= TASK SCHEMA =======================
 const taskSchema = new mongoose.Schema({
   title: String,
   description: String,
@@ -88,7 +85,7 @@ function ensureAuth(req, res, next) {
   next();
 }
 
-// ======================= GOOGLE OAUTH STRATEGY =======================
+// ======================= GOOGLE STRATEGY =======================
 passport.use(
   new GoogleStrategy(
     {
@@ -101,12 +98,8 @@ passport.use(
         const email = profile.emails[0].value;
 
         let user = await User.findOne({ email });
-
         if (!user) {
-          user = new User({
-            email,
-            password: "google-oauth", // placeholder
-          });
+          user = new User({ email, password: "google-oauth" });
           await user.save();
         }
 
@@ -119,25 +112,68 @@ passport.use(
   )
 );
 
-// ======================= GOOGLE AUTH ROUTES =======================
+// ======================= GITHUB STRATEGY =======================
+passport.use(
+  new GitHubStrategy(
+    {
+      clientID: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      callbackURL: process.env.GITHUB_CALLBACK_URL,
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email =
+          profile.emails?.[0]?.value ||
+          `${profile.username}@githubuser.com`; // fallback if GitHub hides email
 
-//  login with Google
-app.get(
-  "/auth/google",
+        let user = await User.findOne({ email });
+        if (!user) {
+          user = new User({ email, password: "github-oauth" });
+          await user.save();
+        }
+
+        return done(null, user);
+      } catch (err) {
+        console.error("GitHub Auth Error:", err);
+        return done(err, null);
+      }
+    }
+  )
+);
+
+// ======================= OAUTH ROUTES =======================
+
+// --- GOOGLE ---
+app.get("/auth/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
-// Google redirects back here
 app.get(
   "/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/login.html" }),
   (req, res) => {
-    req.session.userId = req.user._id; // Store user session
-    res.redirect("https://noted-planner.netlify.app"); // send user to your frontend
+    req.session.userId = req.user._id;
+    res.redirect("https://noted-planner.netlify.app");
   }
 );
 
-// ======================= NORMAL AUTH ROUTES =======================
+// --- GITHUB ---
+app.get("/auth/github",
+  passport.authenticate("github", { scope: ["user:email"] })
+);
+
+app.get(
+  "/auth/github/callback",
+  passport.authenticate("github", { failureRedirect: "/login.html" }),
+  (req, res) => {
+    req.session.userId = req.user._id;
+    res.redirect("https://noted-planner.netlify.app");
+  }
+);
+
+// ======================= STANDARD AUTH =======================
+
+// REGISTER
 app.post("/auth/register", async (req, res) => {
   const { email, password } = req.body;
 
@@ -145,13 +181,13 @@ app.post("/auth/register", async (req, res) => {
   if (exists) return res.status(400).json({ error: "Email already exists" });
 
   const hashed = await bcrypt.hash(password, 10);
-
   const newUser = new User({ email, password: hashed });
   await newUser.save();
 
   res.json({ message: "User registered successfully" });
 });
 
+// LOGIN
 app.post("/auth/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -165,11 +201,13 @@ app.post("/auth/login", async (req, res) => {
   res.json({ message: "Logged in", userId: user._id });
 });
 
+// LOGOUT
 app.get("/auth/logout", (req, res) => {
   req.session.destroy();
   res.json({ message: "Logged out" });
 });
 
+// LOGIN STATUS
 app.get("/auth/status", (req, res) => {
   res.json({ loggedIn: !!req.session.userId });
 });
@@ -217,8 +255,13 @@ app.delete("/api/tasks/:id", ensureAuth, async (req, res) => {
   res.sendStatus(204);
 });
 
+// ======================= SERVE FRONTEND =======================
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 // ======================= START SERVER =======================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT} with Google OAuth enabled`)
+  console.log(`🚀 Server running on port ${PORT} with OAuth enabled`)
 );
