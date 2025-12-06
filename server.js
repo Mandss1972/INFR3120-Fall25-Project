@@ -174,26 +174,6 @@ app.get("/auth/status", (req, res) => {
   res.json({ loggedIn: !!req.session.userId });
 });
 
-// ===== CHANGE PASSWORD (User must be logged in) =====
-app.post("/auth/change-password", ensureAuth, async (req, res) => {
-  const { oldPassword, newPassword } = req.body;
-
-  const user = await User.findById(req.session.userId);
-  if (!user) return res.status(404).json({ error: "User not found" });
-
-  // Verify old password
-  const match = await bcrypt.compare(oldPassword, user.password);
-  if (!match)
-    return res.status(400).json({ error: "Old password is incorrect" });
-
-  // Hash and update new password
-  const hashed = await bcrypt.hash(newPassword, 10);
-  user.password = hashed;
-
-  await user.save();
-  res.json({ message: "Password changed successfully" });
-});
-
 // ====== TASK ROUTES (Protected) ======
 
 // Get all tasks

@@ -300,27 +300,3 @@ footer {
   width: 20px;
   height: 20px;
 }
-
-.change-password-box {
-  margin: 20px 0;
-  padding: 15px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  max-width: 400px;
-}
-
-.change-password-box input {
-  width: 100%;
-  padding: 10px;
-  margin: 5px 0;
-}
-
-.change-password-box button {
-  width: 100%;
-  padding: 10px;
-  background: black;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
