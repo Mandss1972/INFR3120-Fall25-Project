@@ -1,59 +1,94 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Login - NOTED</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – NOTED Digital Planner</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
 
-  <!-- Pink Header (matches main page) -->
+<body>
   <header>
     <div class="logo-container">
-      <img src="logo.png" class="logo" alt="NOTED Logo">
+      <img src="./logo.png" alt="NOTED Logo" class="logo" />
       <h1>NOTED</h1>
     </div>
   </header>
 
-  <!-- Centered Login Card -->
-  <div class="auth-card">
-    <h2>Login</h2>
+  <!-- LOGIN BOX -->
+  <section class="auth-container">
+    <h2>Welcome Back</h2>
+    <p class="auth-subtext">Log in to continue planning smarter.</p>
 
-    <form id="loginForm">
+    <!-- STANDARD EMAIL/PASSWORD LOGIN -->
+    <form id="loginForm" class="auth-form">
       <label>Email</label>
-      <input type="email" id="email" required />
+      <input type="email" id="email" placeholder="Enter your email" required />
 
       <label>Password</label>
-      <input type="password" id="password" required />
+      <input type="password" id="password" placeholder="Enter your password" required />
 
-      <button class="auth-btn" type="submit">Login</button>
+      <button type="submit" class="auth-btn">Login</button>
     </form>
 
-    <p class="auth-switch">
-      Don't have an account? <a href="register.html">Register here</a>.
+    <!-- OAUTH SECTION -->
+    <div class="oauth-container">
+      <p class="or-text">Or continue with</p>
+
+      <!-- GOOGLE LOGIN BUTTON -->
+<a href="https://infr3120-fall25-project-noted-backend.onrender.com/auth/google"
+   class="google-btn">
+  <img 
+    src="./google-icon.png" 
+    alt="Google Icon" 
+    class="google-icon"
+  />
+  <span>Continue with Google</span>
+</a>
+      
+      <!-- PLACEHOLDER: GITHUB BUTTON WILL GO HERE -->
+      <a id="githubButton" style="display:none"></a>
+    </div>
+
+    <p class="switch-text">
+      Don't have an account?
+      <a href="register.html">Register here</a>
     </p>
-  </div>
+  </section>
+
+  <footer>
+    <p>© 2025 NOTED Digital Planner</p>
+  </footer>
 
   <script>
+    // Normal login logic:
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
 
-      const res = await fetch("/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      try {
+        const res = await fetch("https://infr3120-fall25-project-noted-backend.onrender.com/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email, password })
+        });
 
-      if (res.ok) {
-        alert("Login successful!");
-        window.location.href = "/";
-      } else {
-        alert("Invalid login.");
+        const data = await res.json();
+
+        if (res.ok) {
+          alert("Login successful!");
+          window.location.href = "index.html";
+        } else {
+          alert(data.error || "Login failed");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("An error occurred while logging in.");
       }
     });
   </script>
-
 </body>
 </html>

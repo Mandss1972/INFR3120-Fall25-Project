@@ -17,24 +17,29 @@ const app = express();
 
 // ====== MIDDLEWARE ======
 app.use(express.json());
+
+// ====== SESSION CONFIG (REQUIRED FOR NETLIFY + RENDER CROSS-SITE COOKIES) ======
 app.use(
   session({
     secret: "noted-secret-key",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, 
+    cookie: {
+      secure: true,       // REQUIRED for HTTPS on Render
+      sameSite: "none",   // REQUIRED for Netlify -> Render cookie transmission
+    },
   })
 );
 
-// Allow frontend to communicate with backend
+// ====== CORS CONFIG (FRONTEND URL MUST MATCH YOUR NETLIFY DEPLOYMENT) ======
 app.use(
   cors({
-    origin: "*",
-    credentials: true,
+    origin: "https://noted-planner.netlify.app", // your real frontend URL
+    credentials: true, // allow cookies to be sent
   })
 );
 
-// Serve static files
+// ====== SERVE STATIC FILES ======
 app.use(express.static(path.join(__dirname, "public")));
 
 // ====== DATABASE CONNECTION ======
@@ -48,7 +53,6 @@ const userSchema = new mongoose.Schema({
   email: String,
   password: String,
 });
-
 const User = mongoose.model("User", userSchema);
 
 // ====== TASK SCHEMA ======
@@ -110,9 +114,9 @@ app.get("/auth/status", (req, res) => {
   res.json({ loggedIn: !!req.session.userId });
 });
 
-// ===== TASK ROUTES (Protected) =====
+// ====== TASK ROUTES (Protected) ======
 
-// Get tasks
+// Get all tasks
 app.get("/api/tasks", ensureAuth, async (req, res) => {
   const tasks = await Task.find({ userId: req.session.userId });
   res.json(tasks);
@@ -133,7 +137,7 @@ app.post("/api/tasks", ensureAuth, async (req, res) => {
   res.json(newTask);
 });
 
-// UPDATE a task
+// Update task
 app.put("/api/tasks/:id", ensureAuth, async (req, res) => {
   const { title, description, dueDate } = req.body;
 
@@ -165,5 +169,6 @@ app.get("/", (req, res) => {
 
 // ====== START SERVER ======
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
+app.listen(PORT, () =>
+  console.log(`Server running on port ${PORT} and ready for deployment`)
+);
