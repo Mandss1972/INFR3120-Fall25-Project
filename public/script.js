@@ -1,58 +1,91 @@
-// ======== BACKEND BASE URL ========
+// ===============================
+// BACKEND URL
+// ===============================
 const baseUrl = "https://infr3120-fall25-project-noted-backend.onrender.com";
 
-let editTaskId = null; // NEW: track which task is being edited
+let editTaskId = null;
 
-// ======== AUTHENTICATION CHECK ========
+// ===============================
+// CHECK AUTH STATUS
+// ===============================
 async function checkAuth() {
-  const res = await fetch(`${baseUrl}/auth/status`, { credentials: "include" });
-  const data = await res.json();
+  try {
+    const res = await fetch(`${baseUrl}/auth/status`, {
+      credentials: "include",
+    });
 
-  const loginLink = document.getElementById("loginLink");
-  const logoutLink = document.getElementById("logoutLink");
+    const data = await res.json();
 
-  if (data.loggedIn) {
-    loginLink.style.display = "none";
-    logoutLink.style.display = "inline-block";
-  } else {
-    logoutLink.style.display = "none";
-    loginLink.style.display = "inline-block";
+    const loginLink = document.getElementById("loginLink");
+    const logoutLink = document.getElementById("logoutLink");
 
-    document.querySelector(".task-form").style.display = "none";
-    document.querySelector(".task-list").style.display = "none";
+    if (data.loggedIn) {
+      // Show logout, hide login
+      loginLink.style.display = "none";
+      logoutLink.style.display = "inline-block";
+
+      // Now load tasks ONLY after confirmed login
+      await fetchTasks();
+
+    } else {
+      // Show login only
+      logoutLink.style.display = "none";
+      loginLink.style.display = "inline-block";
+
+      // Hide planner UI
+      document.querySelector(".task-form").style.display = "none";
+      document.querySelector(".task-list").style.display = "none";
+    }
+  } catch (err) {
+    console.error("Auth check error:", err);
   }
 }
 
 document.getElementById("logoutLink").addEventListener("click", async () => {
   await fetch(`${baseUrl}/auth/logout`, { credentials: "include" });
-  window.location.reload();
+  window.location.href = "login.html"; // FULL redirect avoids state issues
 });
 
 checkAuth();
 
-
-// ======== UI ELEMENTS ========
+// ===============================
+// UI ELEMENTS
+// ===============================
 const addTaskBtn = document.getElementById("addTaskBtn");
 const taskFormSection = document.getElementById("taskFormSection");
 const taskForm = document.getElementById("taskForm");
 const taskTableBody = document.querySelector("#taskTable tbody");
 
+// Open Create Form
 addTaskBtn.addEventListener("click", () => {
-  editTaskId = null; // NEW: reset edit mode
+  editTaskId = null;
   taskForm.reset();
-  taskFormSection.classList.toggle("hidden");
+  taskFormSection.classList.remove("hidden");
 });
 
-// ======== LOAD TASKS ========
+// ===============================
+// LOAD TASKS
+// ===============================
 async function fetchTasks() {
   try {
-    const res = await fetch(`${baseUrl}/api/tasks`, { credentials: "include" });
-    if (res.status === 401) return;
+    const res = await fetch(`${baseUrl}/api/tasks`, {
+      credentials: "include",
+    });
+
+    if (res.status === 401) {
+      console.warn("Not authorized.");
+      return;
+    }
 
     const tasks = await res.json();
+
+    // Show UI since user is logged in
+    document.querySelector(".task-form").style.display = "block";
+    document.querySelector(".task-list").style.display = "block";
+
     taskTableBody.innerHTML = "";
 
-    tasks.forEach(task => {
+    tasks.forEach((task) => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${task.title}</td>
@@ -67,25 +100,28 @@ async function fetchTasks() {
     });
 
   } catch (err) {
-    console.error("❌ Failed to load tasks:", err);
+    console.error("Failed to load tasks:", err);
   }
 }
 
-
-// ======== START EDIT MODE ========
+// ===============================
+// START EDIT
+// ===============================
 function startEdit(id, title, description, dueDate) {
   editTaskId = id;
 
   document.getElementById("title").value = title;
-  document.getElementById("description").value = description === "—" ? "" : description;
+  document.getElementById("description").value =
+    description === "—" ? "" : description;
   document.getElementById("dueDate").value = dueDate;
 
   taskFormSection.classList.remove("hidden");
   addTaskBtn.scrollIntoView({ behavior: "smooth" });
 }
 
-
-// ======== SAVE OR UPDATE TASK ========
+// ===============================
+// SUBMIT (CREATE + UPDATE)
+// ===============================
 taskForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -94,7 +130,7 @@ taskForm.addEventListener("submit", async (e) => {
   const dueDate = document.getElementById("dueDate").value;
 
   if (!title || !dueDate) {
-    alert("Please fill in all fields!");
+    alert("Please fill in all fields.");
     return;
   }
 
@@ -104,54 +140,48 @@ taskForm.addEventListener("submit", async (e) => {
     let res;
 
     if (editTaskId) {
-      // ---- UPDATE TASK ----
       res = await fetch(`${baseUrl}/api/tasks/${editTaskId}`, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       alert("Task updated!");
-
     } else {
-      // ---- ADD NEW TASK ----
       res = await fetch(`${baseUrl}/api/tasks`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       alert("Task added!");
     }
 
+    // Hide form & refresh tasks
+    taskFormSection.classList.add("hidden");
+    editTaskId = null;
     taskForm.reset();
-    editTaskId = null; // clear edit mode
     fetchTasks();
 
   } catch (err) {
-    console.error("⚠️ Error submitting task:", err);
+    console.error("Error submitting task:", err);
   }
 });
 
-
-// ======== DELETE TASK ========
+// ===============================
+// DELETE
+// ===============================
 async function deleteTask(id) {
-  const confirmDelete = confirm("Delete this task?");
-  if (!confirmDelete) return;
+  if (!confirm("Are you sure you want to delete this task?")) return;
 
   try {
-    const res = await fetch(`${baseUrl}/api/tasks/${id}`, {
+    await fetch(`${baseUrl}/api/tasks/${id}`, {
       method: "DELETE",
-      credentials: "include"
+      credentials: "include",
     });
 
-    if (res.ok) fetchTasks();
-
+    fetchTasks();
   } catch (err) {
-    console.error("⚠️ Error deleting task:", err);
+    console.error("Error deleting task:", err);
   }
 }
-
-
-// ======== INITIAL LOAD ========
-fetchTasks();
