@@ -35,16 +35,16 @@
 
     <form id="taskForm">
       <label>Title</label>
-      <input type="text" id="title" placeholder="e.g. Web Dev Assignment 1" required />
+      <input type="text" id="title" required />
 
       <label>Description</label>
-      <textarea id="description" placeholder="Brief details about the task" required></textarea>
+      <textarea id="description" required></textarea>
 
       <label>Due Date</label>
       <input type="date" id="dueDate" required />
 
       <button type="submit" class="save-btn">Save</button>
-      <button type="button" id="cancelBtn" class="cancel-btn" onclick="cancelEdit()">Cancel</button>
+      <button type="button" id="cancelBtn" class="cancel-btn">Cancel</button>
     </form>
   </section>
 
@@ -69,6 +69,130 @@
     <p>© 2025 NOTED | Created by Amanda Ahanonu & Hailee Gaines-Hart</p>
   </footer>
 
-  <script src="script.js"></script>
+  <!-- ===================== SCRIPT ===================== -->
+  <script>
+    const API = "https://infr3120-fall25-project-noted-backend.onrender.com";
+
+    // ===== CHECK LOGIN STATUS ON PAGE LOAD =====
+    async function checkAuth() {
+      const res = await fetch(`${API}/auth/status`, {
+        credentials: "include"
+      });
+
+      const data = await res.json();
+
+      const loginLink = document.getElementById("loginLink");
+      const logoutLink = document.getElementById("logoutLink");
+
+      if (data.loggedIn) {
+        loginLink.style.display = "none";
+        logoutLink.style.display = "inline";
+        loadTasks();
+      } else {
+        loginLink.style.display = "inline";
+        logoutLink.style.display = "none";
+      }
+    }
+
+    checkAuth();
+
+    // ===== LOGOUT =====
+    document.getElementById("logoutLink").addEventListener("click", async () => {
+      await fetch(`${API}/auth/logout`, {
+        credentials: "include"
+      });
+      window.location.reload();
+    });
+
+    // ===== LOAD TASKS =====
+    async function loadTasks() {
+      const res = await fetch(`${API}/api/tasks`, {
+        credentials: "include"
+      });
+
+      const tasks = await res.json();
+      const tbody = document.querySelector("#taskTable tbody");
+
+      tbody.innerHTML = "";
+
+      tasks.forEach(task => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${task.title}</td>
+          <td>${task.description}</td>
+          <td>${task.dueDate}</td>
+          <td class="actions">
+            <button onclick="editTask('${task._id}', '${task.title}', '${task.description}', '${task.dueDate}')">Edit</button>
+            <button class="delete" onclick="deleteTask('${task._id}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // ===== SHOW FORM =====
+    document.getElementById("addTaskBtn").addEventListener("click", () => {
+      document.getElementById("taskFormSection").classList.remove("hidden");
+      document.getElementById("formTitle").innerText = "Add New Assignment";
+    });
+
+    // ===== HIDE FORM =====
+    document.getElementById("cancelBtn").addEventListener("click", () => {
+      document.getElementById("taskFormSection").classList.add("hidden");
+      document.getElementById("taskForm").reset();
+    });
+
+    let editingTaskId = null;
+
+    function editTask(id, title, description, dueDate) {
+      editingTaskId = id;
+      document.getElementById("title").value = title;
+      document.getElementById("description").value = description;
+      document.getElementById("dueDate").value = dueDate;
+      document.getElementById("formTitle").innerText = "Edit Assignment";
+      document.getElementById("taskFormSection").classList.remove("hidden");
+    }
+
+    // ===== SAVE TASK (ADD OR EDIT) =====
+    document.getElementById("taskForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById("title").value;
+      const description = document.getElementById("description").value;
+      const dueDate = document.getElementById("dueDate").value;
+
+      const data = { title, description, dueDate };
+
+      let url = `${API}/api/tasks`;
+      let method = "POST";
+
+      if (editingTaskId) {
+        url = `${API}/api/tasks/${editingTaskId}`;
+        method = "PUT";
+      }
+
+      await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data)
+      });
+
+      editingTaskId = null;
+      document.getElementById("taskFormSection").classList.add("hidden");
+      document.getElementById("taskForm").reset();
+      loadTasks();
+    });
+
+    // ===== DELETE TASK =====
+    async function deleteTask(id) {
+      await fetch(`${API}/api/tasks/${id}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      loadTasks();
+    }
+  </script>
+
 </body>
 </html>

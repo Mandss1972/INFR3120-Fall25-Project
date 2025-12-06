@@ -22,18 +22,29 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 
-// ======================= SESSION CONFIG =======================
+// ====== SESSION CONFIG ======
 app.use(
   session({
     secret: "noted-secret-key",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true,     // required for HTTPS on Render
-      sameSite: "none", // required for Netlify → Render communication
+      secure: true,       // Render uses HTTPS → MUST be true
+      httpOnly: true,
+      sameSite: "none",   // REQUIRED for cross-site cookies (Netlify ↔ Render)
     },
   })
 );
+
+// ====== CORS CONFIG ======
+app.use(
+  cors({
+    origin: "https://noted-planner.netlify.app", // your Netlify domain
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true, // allow cookies to be included
+  })
+);
+
 
 // ======================= PASSPORT INIT =======================
 app.use(passport.initialize());
