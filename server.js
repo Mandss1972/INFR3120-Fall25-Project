@@ -1,4 +1,4 @@
-// ====== IMPORTS ======
+// ======================= IMPORTS =======================
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
@@ -9,53 +9,69 @@ import { fileURLToPath } from "url";
 import session from "express-session";
 import bcrypt from "bcrypt";
 
-// ====== PATH SETUP ======
+// Google OAuth imports
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+
+// ======================= PATH SETUP =======================
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-
-// ====== MIDDLEWARE ======
 app.use(express.json());
 
-// ====== SESSION CONFIG (REQUIRED FOR NETLIFY + RENDER CROSS-SITE COOKIES) ======
+// ======================= SESSION CONFIG =======================
+// Required for Netlify + Render cookie handling
 app.use(
   session({
     secret: "noted-secret-key",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true,       // REQUIRED for HTTPS on Render
-      sameSite: "none",   // REQUIRED for Netlify -> Render cookie transmission
+      secure: true, 
+      sameSite: "none", // used for Netlify frontend to send cookies
     },
   })
 );
 
-// ====== CORS CONFIG (FRONTEND URL MUST MATCH YOUR NETLIFY DEPLOYMENT) ======
+// ======================= PASSPORT INIT =======================
+app.use(passport.initialize());
+app.use(passport.session());
+
+//  passport stores user sessions
+passport.serializeUser((user, done) => {
+  done(null, user._id);
+});
+passport.deserializeUser(async (id, done) => {
+  const user = await User.findById(id);
+  done(null, user);
+});
+
+// ======================= CORS CONFIG =======================
 app.use(
   cors({
-    origin: "https://noted-planner.netlify.app", // your real frontend URL
-    credentials: true, // allow cookies to be sent
+    origin: "https://noted-planner.netlify.app",
+    credentials: true,
   })
 );
 
-// ====== SERVE STATIC FILES ======
+// Serve static front-end files if needed
 app.use(express.static(path.join(__dirname, "public")));
 
-// ====== DATABASE CONNECTION ======
+// ======================= DATABASE CONNECTION =======================
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection failed:", err));
 
-// ====== USER SCHEMA ======
+// ======================= USER SCHEMA =======================
 const userSchema = new mongoose.Schema({
   email: String,
   password: String,
 });
 const User = mongoose.model("User", userSchema);
 
-// ====== TASK SCHEMA ======
+// ======================= TASK SCHEMA =======================
 const taskSchema = new mongoose.Schema({
   title: String,
   description: String,
@@ -64,7 +80,7 @@ const taskSchema = new mongoose.Schema({
 });
 const Task = mongoose.model("Task", taskSchema);
 
-// ===== AUTH MIDDLEWARE =====
+// ======================= AUTH MIDDLEWARE =======================
 function ensureAuth(req, res, next) {
   if (!req.session.userId) {
     return res.status(401).json({ error: "Not authorized" });
@@ -72,9 +88,56 @@ function ensureAuth(req, res, next) {
   next();
 }
 
-// ====== AUTH ROUTES ======
+// ======================= GOOGLE OAUTH STRATEGY =======================
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL,
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails[0].value;
 
-// REGISTER
+        let user = await User.findOne({ email });
+
+        if (!user) {
+          user = new User({
+            email,
+            password: "google-oauth", // placeholder
+          });
+          await user.save();
+        }
+
+        return done(null, user);
+      } catch (err) {
+        console.error("Google Auth Error:", err);
+        return done(err, null);
+      }
+    }
+  )
+);
+
+// ======================= GOOGLE AUTH ROUTES =======================
+
+//  login with Google
+app.get(
+  "/auth/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+// Google redirects back here
+app.get(
+  "/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login.html" }),
+  (req, res) => {
+    req.session.userId = req.user._id; // Store user session
+    res.redirect("https://noted-planner.netlify.app"); // send user to your frontend
+  }
+);
+
+// ======================= NORMAL AUTH ROUTES =======================
 app.post("/auth/register", async (req, res) => {
   const { email, password } = req.body;
 
@@ -89,7 +152,6 @@ app.post("/auth/register", async (req, res) => {
   res.json({ message: "User registered successfully" });
 });
 
-// LOGIN
 app.post("/auth/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -103,26 +165,21 @@ app.post("/auth/login", async (req, res) => {
   res.json({ message: "Logged in", userId: user._id });
 });
 
-// LOGOUT
 app.get("/auth/logout", (req, res) => {
   req.session.destroy();
   res.json({ message: "Logged out" });
 });
 
-// CHECK LOGIN STATUS
 app.get("/auth/status", (req, res) => {
   res.json({ loggedIn: !!req.session.userId });
 });
 
-// ====== TASK ROUTES (Protected) ======
-
-// Get all tasks
+// ======================= TASK ROUTES =======================
 app.get("/api/tasks", ensureAuth, async (req, res) => {
   const tasks = await Task.find({ userId: req.session.userId });
   res.json(tasks);
 });
 
-// Add task
 app.post("/api/tasks", ensureAuth, async (req, res) => {
   const { title, description, dueDate } = req.body;
 
@@ -137,7 +194,6 @@ app.post("/api/tasks", ensureAuth, async (req, res) => {
   res.json(newTask);
 });
 
-// Update task
 app.put("/api/tasks/:id", ensureAuth, async (req, res) => {
   const { title, description, dueDate } = req.body;
 
@@ -152,7 +208,6 @@ app.put("/api/tasks/:id", ensureAuth, async (req, res) => {
   res.json(updated);
 });
 
-// Delete task
 app.delete("/api/tasks/:id", ensureAuth, async (req, res) => {
   await Task.findOneAndDelete({
     _id: req.params.id,
@@ -162,13 +217,8 @@ app.delete("/api/tasks/:id", ensureAuth, async (req, res) => {
   res.sendStatus(204);
 });
 
-// ====== SERVE FRONTEND ======
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// ====== START SERVER ======
+// ======================= START SERVER =======================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT} and ready for deployment`)
+  console.log(`🚀 Server running on port ${PORT} with Google OAuth enabled`)
 );
