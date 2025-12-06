@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NOTED - Digital Planner</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- ===== HEADER ===== -->
+  <header>
+    <div class="logo-container">
+      <img src="./logo.png" alt="NOTED Logo" class="logo" />
+      <h1>NOTED</h1>
+    </div>
+
+    <!-- Authentication Navigation -->
+    <nav class="auth-nav">
+      <a href="login.html" id="loginLink">Login</a>
+      <a href="#" id="logoutLink" style="display: none;">Logout</a>
+    </nav>
+  </header>
+
+  <!-- ===== HERO SECTION ===== -->
+  <section class="hero">
+    <h2>Stay Organized. Stay Ahead.</h2>
+    <p>Track assignments, projects, and deadlines all in one smart place.</p>
+    <button id="addTaskBtn" class="hero-btn">+ Add Assignment</button>
+  </section>
+
+  <!-- ===== TASK FORM ===== -->
+  <section class="task-form hidden" id="taskFormSection">
+    <h3 id="formTitle">Add New Assignment</h3>
+
+    <form id="taskForm">
+      <label>Title</label>
+      <input type="text" id="title" placeholder="e.g. Web Dev Assignment 1" required />
+
+      <label>Description</label>
+      <textarea id="description" placeholder="Brief details about the task" required></textarea>
+
+      <label>Due Date</label>
+      <input type="date" id="dueDate" required />
+
+      <button type="submit" class="save-btn">Save</button>
+      <button type="button" id="cancelBtn" class="cancel-btn" onclick="cancelEdit()">Cancel</button>
+    </form>
+  </section>
+
+  <!-- ===== TASK LIST ===== -->
+  <section class="task-list">
+    <h3>Your Assignments</h3>
+    <table id="taskTable">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Due Date</th>
+          <th style="width: 150px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <p>© 2025 NOTED | Created by Amanda Ahanonu & Hailee Gaines-Hart</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
