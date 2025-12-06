@@ -28,6 +28,31 @@ document.getElementById("logoutLink").addEventListener("click", async () => {
   window.location.reload();
 });
 
+async function changePassword() {
+  const oldPassword = document.getElementById("oldPassword").value;
+  const newPassword = document.getElementById("newPassword").value;
+
+  const res = await fetch(`${API_BASE}/auth/change-password`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ oldPassword, newPassword }),
+  });
+
+  const data = await res.json();
+
+  const pwStatus = document.getElementById("pwStatus");
+
+  if (res.ok) {
+    pwStatus.innerText = "Password updated successfully!";
+    pwStatus.style.color = "green";
+  } else {
+    pwStatus.innerText = data.error;
+    pwStatus.style.color = "red";
+  }
+}
+
+
 checkAuth();
 
 
