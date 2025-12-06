@@ -1,4 +1,4 @@
-/* ===== AUTH NAV (NEW) ===== */
+/* ====================== AUTH NAV (NEW) ====================== */
 
 .auth-nav {
   text-align: center;
@@ -16,8 +16,7 @@
   text-decoration: underline;
 }
 
-
-/* ===== EXISTING STYLES ===== */
+/* ====================== GLOBAL STYLES ====================== */
 
 body {
   font-family: 'Segoe UI', sans-serif;
@@ -51,6 +50,8 @@ header {
   border-radius: 10px;
 }
 
+/* ====================== HERO ====================== */
+
 .hero {
   text-align: center;
   padding: 80px 20px;
@@ -80,6 +81,8 @@ header {
 .hero-btn:hover {
   background-color: #ff4fa1;
 }
+
+/* ====================== TASK FORM ====================== */
 
 .task-form {
   width: 80%;
@@ -126,6 +129,8 @@ header {
   background-color: #ccc;
 }
 
+/* ====================== TASK LIST ====================== */
+
 .task-list {
   width: 90%;
   margin: 30px auto;
@@ -160,6 +165,8 @@ th, td {
   background-color: #ff4f4f;
 }
 
+/* ====================== FOOTER ====================== */
+
 footer {
   text-align: center;
   padding: 20px;
@@ -168,135 +175,117 @@ footer {
   margin-top: 50px;
 }
 
-/* ===== LOGIN & REGISTER CARD ===== */
+/* ====================== AUTH (LOGIN + REGISTER) ====================== */
 
-.auth-card {
-  width: 90%;
-  max-width: 450px;
-  background: white;
-  margin: 50px auto;
-  padding: 30px;
+.auth-container {
+  width: 350px;
+  margin: 60px auto;
+  padding: 25px;
   border-radius: 12px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  background: #f8f8f8;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
   text-align: center;
 }
 
-.auth-card h2 {
-  margin-bottom: 20px;
+.auth-container h2 {
+  margin-bottom: 10px;
   color: #ff4fa1;
 }
 
+.auth-subtext {
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #555;
+}
+
 /* form styling */
-.auth-card label {
-  display: block;
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-form label {
   text-align: left;
   font-weight: bold;
-  margin-top: 15px;
 }
 
-.auth-card input {
+.auth-form input {
   width: 100%;
   padding: 10px;
-  margin-top: 5px;
   border: 1px solid #ccc;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
-/* button (matches dashboard style) */
+/* Primary button */
 .auth-btn {
-  width: 100%;
   padding: 12px;
-  margin-top: 20px;
-  background-color: #ff7eb9;
+  background: black;
   color: white;
-  font-size: 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 16px;
 }
 
 .auth-btn:hover {
-  background-color: #ff4fa1;
+  opacity: 0.85;
 }
 
-/* link under form */
-.auth-switch {
+/* Link under form */
+.switch-text {
   margin-top: 15px;
+  font-size: 14px;
 }
 
-.auth-switch a {
+.switch-text a {
   color: #ff4fa1;
   font-weight: bold;
   text-decoration: none;
 }
 
-.auth-switch a:hover {
+.switch-text a:hover {
   text-decoration: underline;
 }
 
-.auth-container {
-    width: 350px;
-    margin: 60px auto;
-    padding: 25px;
-    border-radius: 12px;
-    background: #f8f8f8;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    text-align: center;
-}
-
-.auth-form {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.auth-btn {
-    padding: 10px;
-    background: black;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-.auth-btn:hover {
-    opacity: 0.8;
-}
+/* ====================== OAUTH BUTTONS ====================== */
 
 .oauth-container {
-    margin-top: 20px;
+  margin-top: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .or-text {
-    color: #666;
-    font-size: 14px;
-    margin-bottom: 10px;
+  color: #666;
+  font-size: 14px;
 }
 
-.google-btn {
+.google-btn,
+.github-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  width: 100%;
-  padding: 12px;
+  background: white;
+  border: 1px solid #ccc;
   border-radius: 8px;
-  background: #ffffff;
-  border: 1px solid #dddddd;
-  text-decoration: none;
-  color: #444;
+  padding: 12px;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s ease;
+  text-decoration: none;
+  color: black;
+  transition: 0.25s;
 }
 
-.google-btn:hover {
-  background: #f0f0f0;
+.google-btn:hover,
+.github-btn:hover {
+  background: #f2f2f2;
 }
 
-.google-icon {
-  width: 20px;
-  height: 20px;
+.social-icon {
+  width: 24px;
+  height: 24px;
 }
