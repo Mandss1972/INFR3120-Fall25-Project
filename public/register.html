@@ -1,56 +1,97 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Register - NOTED</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register – NOTED Digital Planner</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 
- <!-- Pink Header (matches main page) -->
+<body>
+
   <header>
     <div class="logo-container">
-      <img src="logo.png" class="logo" alt="NOTED Logo">
+      <img src="./logo.png" alt="NOTED Logo" class="logo" />
       <h1>NOTED</h1>
     </div>
   </header>
 
-<body>
-  <div class="auth-card">
-    <h2>Create Account</h2>
+  <!-- REGISTER BOX -->
+  <section class="auth-container">
+    <h2>Create an Account</h2>
+    <p class="auth-subtext">Join NOTED and start planning smarter.</p>
 
-    <form id="registerForm">
+    <!-- EMAIL/PASSWORD REGISTER FORM -->
+    <form id="registerForm" class="auth-form">
       <label>Email</label>
-      <input type="email" id="email" required />
+      <input type="email" id="email" placeholder="Enter your email" required />
 
       <label>Password</label>
-      <input type="password" id="password" required />
+      <input type="password" id="password" placeholder="Create a password" required />
 
-      <button class="auth-btn" type="submit">Register</button>
+      <button type="submit" class="auth-btn">Register</button>
     </form>
 
-    <p>Already have an account? <a href="login.html">Login here</a>.</p>
-  </div>
+    <!-- OAUTH SECTION -->
+    <div class="oauth-container">
+      <p class="or-text">Or sign up with</p>
+
+      <!-- Google OAuth -->
+      <a href="https://infr3120-fall25-project-noted-backend.onrender.com/auth/google"
+         class="google-btn">
+        <img src="./google-icon.png" alt="Google Icon" class="social-icon" />
+        <span>Sign up with Google</span>
+      </a>
+
+      <!-- GitHub OAuth -->
+      <a href="https://infr3120-fall25-project-noted-backend.onrender.com/auth/github"
+         class="github-btn">
+        <img src="./github-icon.png" alt="GitHub Icon" class="social-icon" />
+        <span>Sign up with GitHub</span>
+      </a>
+    </div>
+
+    <p class="switch-text">
+      Already have an account?
+      <a href="login.html">Login here</a>
+    </p>
+  </section>
+
+  <footer>
+    <p>© 2025 NOTED Digital Planner</p>
+  </footer>
 
   <script>
+    // REGISTER LOGIC
     document.getElementById("registerForm").addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
 
-      const res = await fetch("/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      try {
+        const res = await fetch("https://infr3120-fall25-project-noted-backend.onrender.com/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email, password })
+        });
 
-      if (res.ok) {
-        alert("Account created!");
-        window.location.href = "/login.html";
-      } else {
-        alert("Email already in use.");
+        const data = await res.json();
+
+        if (res.ok) {
+          alert("Registration successful!");
+          window.location.href = "login.html";
+        } else {
+          alert(data.error || "Registration failed");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("An error occurred during registration.");
       }
     });
   </script>
+
 </body>
 </html>
 
