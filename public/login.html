@@ -5,7 +5,17 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="auth-container">
+
+  <!-- Pink Header (matches main page) -->
+  <header>
+    <div class="logo-container">
+      <img src="logo.png" class="logo" alt="NOTED Logo">
+      <h1>NOTED</h1>
+    </div>
+  </header>
+
+  <!-- Centered Login Card -->
+  <div class="auth-card">
     <h2>Login</h2>
 
     <form id="loginForm">
@@ -15,15 +25,15 @@
       <label>Password</label>
       <input type="password" id="password" required />
 
-      <button type="submit">Login</button>
+      <button class="auth-btn" type="submit">Login</button>
     </form>
 
-    <p>Don't have an account? <a href="register.html">Register here</a>.</p>
+    <p class="auth-switch">
+      Don't have an account? <a href="register.html">Register here</a>.
+    </p>
   </div>
 
   <script>
-    const baseUrl = "";
-
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
 
@@ -44,5 +54,6 @@
       }
     });
   </script>
+
 </body>
 </html>
